@@ -17,7 +17,7 @@ public class SocketServer {
   }
 
   private void startServer() {
-    try (ServerSocket serverSocket = new ServerSocket(8088)) {
+    try (ServerSocket serverSocket = new ServerSocket(57567)) {
       System.out.println("Server start...");
       Socket accept;
       while (true) {
@@ -44,8 +44,11 @@ public class SocketServer {
             System.out.println("客户端: " + client + clientMsg);
           } else {
             System.out.println("客户端: " + client + " 发来了消息：" + clientMsg);
-            bufferedWriter.write("服务器回传: " + clientMsg + "\n");
-            bufferedWriter.flush();
+            //bufferedWriter.write("服务器回传: " + clientMsg + "\n");
+            //bufferedWriter.flush();
+            if ("bye".equals(clientMsg)) {
+              socket.close();
+            }
           }
         }
         //int read = 0;

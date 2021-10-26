@@ -5,8 +5,6 @@ import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 public class SocketClient {
 
@@ -15,43 +13,78 @@ public class SocketClient {
     socketClient.start();
   }
 
+  boolean closeFlag = false;
+
   private void start() {
-    try (Socket socket = new Socket("127.0.0.1", 8088)) {
+    try (Socket socket = new Socket("127.0.0.1", 12345)) {
       System.out.println("client start");
       BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-      new Thread(() -> {
-        try {
-          SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-          Date mDate = new Date();
-          while (true) {
-            Thread.sleep(3000);
-            mDate.setTime(System.currentTimeMillis());
-            bufferedWriter.write("我是客户端心跳包: " + format.format(mDate) + "\n");
-            bufferedWriter.flush();
-          }
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }).start();
+      //new Thread(() -> {
+      //  try {
+      //    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+      //    Date mDate = new Date();
+      //    while (!closeFlag) {
+      //      Thread.sleep(1000000);
+      //      mDate.setTime(System.currentTimeMillis());
+      //      bufferedWriter.write("我是客户端心跳包: " + format.format(mDate) + "\n");
+      //      bufferedWriter.flush();
+      //    }
+      //  } catch (Exception e) {
+      //    e.printStackTrace();
+      //  }
+      //}).start();
 
       new Thread(() -> {
         try {
           String clientMsg;
+          System.out.println("请输入传输个数：");
           BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
           while (!"bye".equals(clientMsg = reader.readLine())) {
+            int count = 0;
+            try {
+              count = Integer.valueOf(clientMsg);
+            } catch (NumberFormatException e) {
+              e.printStackTrace();
+            }
+
+            StringBuilder sb = new StringBuilder();
+            int byteCount = 0;
+            for (int i = 0; i < count; i++) {
+              sb.append(i).append("-");
+              // 包含结尾的"\n"
+              if (i <= 9) {
+                byteCount += 2;
+              } else if (i <= 99) {
+                byteCount += 3;
+              } else if (i <= 999) {
+                byteCount += 4;
+              } else if (i <= 9999) {
+                byteCount += 5;
+              }
+            }
+            clientMsg = sb.append(byteCount + String.valueOf(byteCount).length() + 1).toString();
+
             System.out.println("客户端发送了：" + clientMsg);
             bufferedWriter.write(clientMsg + "\n");
             bufferedWriter.flush();
+          }
+
+          if ("bye".equals(clientMsg)) {
+            closeFlag = true;
+            bufferedWriter.write(clientMsg + "\n");
+            bufferedWriter.flush();
+            socket.close();
           }
         } catch (Exception e) {
           e.printStackTrace();
         }
       }).start();
 
-      while (true) {
-        String msg = bufferedReader.readLine();
-        System.out.println("收到了服务器消息：" + msg);
+      while (!closeFlag) {
+        //String msg = bufferedReader.readLine();
+        //System.out.println("收到了服务器消息：" + msg);
+        Thread.sleep(10000);
       }
       //System.out.println("client end");
     } catch (Exception e) {
