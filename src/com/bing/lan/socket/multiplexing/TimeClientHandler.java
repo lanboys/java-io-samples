@@ -27,15 +27,16 @@ public class TimeClientHandler {
   public static void main(String[] args) {
     TimeClientHandler timeClientHandler = new TimeClientHandler();
     Selector selector = timeClientHandler.getSelector();
-    for (int i = 0; i < 2000; i++) {
-      //new Thread(new Runnable() {
+
+    for (int i = 0; i < 1; i++) {
+      // new Thread(new Runnable() {
       //    @Override
       //    public void run() {
       try {
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.configureBlocking(false);
         socketChannel.connect(new InetSocketAddress("127.0.0.1", 8088));
-        //注册到多路复用器上，监听连接事件
+        // 注册到多路复用器上，监听连接事件
         socketChannel.register(selector, SelectionKey.OP_CONNECT);
       } catch (Exception e) {
         e.printStackTrace();
@@ -62,12 +63,12 @@ public class TimeClientHandler {
   public void start() {
     while (!stop) {
       try {
-        selector.select(1000);
+        selector.select();
         Set<SelectionKey> selectionKeys = selector.selectedKeys();
         Iterator<SelectionKey> iterator = selectionKeys.iterator();
-        SelectionKey key;
+
         while (iterator.hasNext()) {
-          key = iterator.next();
+          SelectionKey key = iterator.next();
           iterator.remove();
           try {
             handInput(key);
@@ -99,9 +100,11 @@ public class TimeClientHandler {
       return;
     }
     SocketChannel channel = (SocketChannel) key.channel();
-    //判断是否连接成功
+
+    // 判断是否连接成功
     if (key.isConnectable()) {
-      //完成了连接
+
+      // 完成了连接
       if (channel.finishConnect()) {
         channel.register(selector, SelectionKey.OP_READ);
         addCount();
@@ -111,7 +114,7 @@ public class TimeClientHandler {
       }
     }
 
-    //判断是否可读状态
+    // 判断是否可读状态
     if (!key.isReadable()) {
       return;
     }

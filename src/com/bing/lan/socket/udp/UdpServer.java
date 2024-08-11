@@ -13,7 +13,7 @@ public class UdpServer {
 
   public static void main(String[] argv) throws IOException {
     DatagramSocket socket = new DatagramSocket(8088);
-    byte[] buf = new byte[5];//如果包字节数大于数组大小，多余的数据将丢失
+    byte[] buf = new byte[5];// 如果包字节数大于数组大小，多余的数据将丢失
     while (true) {
       DatagramPacket packet = new DatagramPacket(buf, buf.length);
       System.out.println("try receive...");

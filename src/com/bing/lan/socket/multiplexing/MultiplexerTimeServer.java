@@ -8,6 +8,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -34,24 +35,24 @@ public class MultiplexerTimeServer implements Runnable {
   }
 
   /**
-   * @Desc 初始化多路复用器，绑定端口
+   *
    */
   public MultiplexerTimeServer(int port) {
     try {
-      //在高性能的I/O设计中，有两个著名的模型：Reactor模型和Proactor模型，其中Reactor模型用于同步I/O，而Proactor模型运用于异步I/O操作。
-      //创建socket 通道
+      // 在高性能的I/O设计中，有两个著名的模型：Reactor模型和Proactor模型，其中Reactor模型用于同步I/O，而Proactor模型运用于异步I/O操作。
+      // 创建socket 通道
       serverSocketChannel = ServerSocketChannel.open();
-      //设置通道为非阻塞
-      //不能设置为阻塞 抛异常
+      // 设置通道为非阻塞
+      // 不能设置为阻塞 抛异常
       // java.nio.channels.IllegalBlockingModeException
       // at java.base/java.nio.channels.spi.AbstractSelectableChannel.register(AbstractSelectableChannel.java:209)
       serverSocketChannel.configureBlocking(false);
-      //绑定ip端口，设置最大的请求连接数为1024
+      // 绑定ip端口，设置最大的请求连接数为1024
       serverSocketChannel.bind(new InetSocketAddress(port), 2048);
 
-      //创建Reactor线程多路复用器
+      // 创建Reactor线程多路复用器
       selector = Selector.open();
-      //注册到多路复用器上，监听accept事件
+      // 注册到多路复用器上，监听accept事件
       SelectionKey selectionKey = serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
       System.out.println("*********************************************");
       System.out.println("****  time server is start on port " + port + "  ****");
@@ -66,12 +67,15 @@ public class MultiplexerTimeServer implements Runnable {
   public void run() {
     while (!stop) {
       try {
-        //System.out.println("\n\nrun(): " + Thread.currentThread().getName() + " " + System.currentTimeMillis() + " loop...");
-        //设置获取就绪key的休眠时间,每间隔1秒唤醒一次
-        selector.select(10000);
+        // System.out.println("\n\nrun(): " + Thread.currentThread().getName() + " " + System.currentTimeMillis() + " loop...");
+        System.out.println(new Date() + " 开始select...");
+        selector.select();// 阻塞操作，直到有一个channel准备好，也可以添加超时时间，时间到了，即使没有准备好的channel，也立马返回
+        System.out.println(new Date() + " 结束select...");
+
         Set<SelectionKey> selectionKeys = selector.selectedKeys();
         Iterator<SelectionKey> iterator = selectionKeys.iterator();
         SelectionKey key;
+
         while (iterator.hasNext()) {
           key = iterator.next();
           iterator.remove();
@@ -104,33 +108,36 @@ public class MultiplexerTimeServer implements Runnable {
       System.out.println("----------handlerKey(): key无效");
       return;
     }
-    //查看是否是accept事件
+
+    // 查看是否是accept事件
     if (key.isAcceptable()) {
+
       System.out.println("----------handlerKey(): accept事件");
       ServerSocketChannel channel = (ServerSocketChannel) key.channel();
-      //接受客户端请求，三次握手结束，建立物理连接
+      // 接受客户端请求，三次握手结束，建立物理连接
       SocketChannel accept = channel.accept();
-      //设置非阻塞模式
+      // 设置非阻塞模式
       accept.configureBlocking(false);
-      //注册监听读取事件
+      // 注册监听读取事件
       accept.register(selector, SelectionKey.OP_READ);
       return;
     }
 
-    //判断是否可读状态
+    // 判断是否可读状态
     if (!key.isReadable()) {
       return;
     }
 
-    //查看是read事件
+    // 查看是read事件
     System.out.println("----------handlerKey(): read事件");
-    //开辟缓存空间
+    // 开辟缓存空间
     ByteBuffer readBuffer = ByteBuffer.allocate(1024);
     SocketChannel socketChannel = (SocketChannel) key.channel();
-    //读取数据
+    // 读取数据
     int readBytes = socketChannel.read(readBuffer);
-    //大于0，读取到了数据
+    // 大于0，读取到了数据
     if (readBytes > 0) {
+
       readBuffer.flip();
       byte[] bytes = new byte[readBuffer.remaining()];
       readBuffer.get(bytes);
@@ -139,12 +146,13 @@ public class MultiplexerTimeServer implements Runnable {
       System.out.println("--------------------<<<<<< receive msg: " + msg);
       doWrite(socketChannel, System.currentTimeMillis() + "");
     } else if (readBytes < 0) {
-      //等于-1 ，链路已经关闭，需要释放资源
+
+      // 等于-1 ，链路已经关闭，需要释放资源
       System.out.println("----------handlerKey(): 链路已经关闭");
       key.cancel();
       socketChannel.close();
     } else {
-      //等于0，没有可读取数据，忽略
+      // 等于0，没有可读取数据，忽略
       System.out.println("----------handlerKey(): 没有可读取数据");
     }
   }
