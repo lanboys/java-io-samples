@@ -3,6 +3,7 @@ package com.bing.lan.socket.nonBlocking;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 
 /**
  * IO是Input/Output的缩写。Unix网络编程中有五种IO模型：
@@ -27,6 +28,7 @@ public class SocketChannelUtil {
       byteBuffer.put(bytes);
       byteBuffer.flip();
       socketChannel.write(byteBuffer);
+      System.out.println(new Date() + " 写数据完成...");
     } catch (Exception e) {
       System.out.println("写失败：" + e.getLocalizedMessage());
     }
@@ -35,9 +37,12 @@ public class SocketChannelUtil {
   public static String doRead(SocketChannel socketChannel) {
     try {
       ByteBuffer readBuffer = ByteBuffer.allocate(1024);
-      //读取数据
-      int readBytes = socketChannel.read(readBuffer);
-      //大于0，读取到了数据
+      // 读取数据
+      System.out.println(new Date() + " 即将读取数据...");
+      int readBytes = socketChannel.read(readBuffer);// 是否阻塞，主要体现在这里
+      System.out.println(new Date() + " 读取数据完成...");
+
+      // 大于0，读取到了数据
       if (readBytes > 0) {
         readBuffer.flip();
         byte[] bytes = new byte[readBuffer.remaining()];
@@ -45,7 +50,7 @@ public class SocketChannelUtil {
         return new String(bytes, StandardCharsets.UTF_8);
       }
     } catch (Exception e) {
-      System.out.println("读失败" + e.getLocalizedMessage());
+      System.out.println("读失败：" + e.getLocalizedMessage());
       return "close";
     }
     return null;

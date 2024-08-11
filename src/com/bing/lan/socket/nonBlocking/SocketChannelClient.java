@@ -21,11 +21,12 @@ public class SocketChannelClient {
   volatile boolean flag = true;
 
   public void start() throws IOException {
-    //创建socket 通道
+    // 创建 socket 通道
     SocketChannel socketChannel = SocketChannel.open();
-    //设置通道为非阻塞
-    socketChannel.configureBlocking(false);// true 同步阻塞I/O , false 同步非阻塞I/O
+    // 设置通道为非阻塞
+    socketChannel.configureBlocking(true);// 默认 true 同步阻塞I/O , false 同步非阻塞I/O
     socketChannel.connect(new InetSocketAddress(8088));
+
     while (!socketChannel.finishConnect()) {
       System.out.println("waiting connect finish .....");
       try {
@@ -35,6 +36,7 @@ public class SocketChannelClient {
       }
     }
     System.out.println("客户端连接成功...");
+
     new Thread(() -> {
       try {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -43,11 +45,13 @@ public class SocketChannelClient {
           Thread.sleep(20000);
           mDate.setTime(System.currentTimeMillis());
           SocketChannelUtil.doWrite(socketChannel, "我是客户端心跳包: " + format.format(mDate) + "\n");
+          System.out.println("客户端发送了心跳包...");
         }
       } catch (Exception e) {
         e.printStackTrace();
       }
     }).start();
+
     new Thread(() -> {
       try {
         String clientMsg;
@@ -60,9 +64,16 @@ public class SocketChannelClient {
         e.printStackTrace();
       }
     }).start();
-    String serverMsg;
+
     while (flag) {
-      serverMsg = SocketChannelUtil.doRead(socketChannel);
+
+      try {
+        Thread.sleep(2000);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+
+      String serverMsg = SocketChannelUtil.doRead(socketChannel);
       if (serverMsg == null) {
         continue;
       }
